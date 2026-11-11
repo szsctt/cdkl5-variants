@@ -137,7 +137,7 @@ tbody tr.is-selected { box-shadow: inset 3px 0 0 var(--hl); }
 .about p { max-width: 860px; }
 .disclaimer { font-size: 13px; color: var(--muted); border-left: 3px solid var(--border); padding-left: 10px; }
 
-.site-footer { padding: 10px 0 30px; color: var(--muted); font-size: 13px; }
+main { padding-bottom: 24px; }
 
 @media (max-width: 860px) {
   .grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
