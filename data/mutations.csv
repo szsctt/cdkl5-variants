@@ -1,0 +1,23 @@
+# CDKL5 variants shown on the site. One row per variant.
+# hgvs: protein HGVS name on CDKL5_1 (NM_001323289.2), e.g. p.Arg59Ter. Type and position are worked out from it.
+# clinvar: optional ClinVar variation ID (e.g. 143952). If blank, the site links to a ClinVar search.
+# reference: optional. A PMID (digits only), a DOI (10.xxxx/...) or free text.
+# note: optional free text shown in the table.
+# type: optional override (missense, nonsense, frameshift, inframe_deletion). Leave blank normally.
+hgvs,clinvar,reference,note,type
+p.Glu55fsTer74,,,,
+p.Arg59Ter,,,,
+p.Leu61CysfsTer15,,,,
+p.Asp135Gly,,,,
+p.Asp135_Phe154del,,,,
+p.Leu142fsTer1,,,,
+p.Gly155fsTer197,,,,
+p.Leu220Pro,,,,
+p.Thr288Ile,,,,
+p.Gln347Ter,,,,
+p.Asp471fs,,,,
+p.Arg550Ter,,,,
+p.Arg558fsTer9,,,,
+p.Leu629Ter,,,,
+p.Ser855Ter,,,,
+p.Pro895Leu,,,,

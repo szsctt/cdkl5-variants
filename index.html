@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CDKL5 clinical variants</title>
+  <meta name="description" content="Interactive map of clinically relevant CDKL5 variants on the kinase domain structure and the disordered C-terminal region.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.2/build/pdbe-molstar-light.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>CDKL5 clinical variants</h1>
+      <p class="lede">
+        Clinically relevant variants in CDKL5, shown on the crystal structure of the kinase domain
+        and on a schematic of the full-length protein. Hover over or click any variant to link the views.
+      </p>
+      <p class="meta">
+        Isoform <span data-cfg="protein.isoform"></span>
+        (<span data-cfg="protein.transcript"></span>, <span data-cfg="protein.length"></span> aa)
+        &middot; Structure: PDB <a id="pdb-link" href="https://www.ebi.ac.uk/pdbe/entry/pdb/4bgq" target="_blank" rel="noopener"><span data-cfg="structure.pdb"></span></a>
+        &middot; Last updated <span data-cfg="lastUpdated"></span>
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel controls" aria-label="Filters">
+      <div id="filters" class="filters"></div>
+      <button id="reset-view" type="button" class="btn">Reset view</button>
+    </section>
+
+    <section class="grid">
+      <div class="panel viewer-panel">
+        <h2>Kinase domain structure</h2>
+        <div id="structure" class="structure" aria-label="3D structure viewer"></div>
+        <p class="hint">Drag to rotate, scroll to zoom. Grey: unaffected residues. Very pale: residues lost to the selected truncating variant.</p>
+      </div>
+      <aside class="panel details-panel">
+        <h2>Variant details</h2>
+        <div id="details" aria-live="polite"></div>
+      </aside>
+    </section>
+
+    <section class="panel">
+      <h2>Full-length protein</h2>
+      <div class="cartoon-scroll">
+        <div id="cartoon" class="cartoon"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="table-head">
+        <h2>All variants</h2>
+        <span id="table-count" class="muted"></span>
+      </div>
+      <div class="table-scroll">
+        <table id="mut-table">
+          <thead>
+            <tr>
+              <th scope="col">Variant</th>
+              <th scope="col">Type</th>
+              <th scope="col">Position</th>
+              <th scope="col">Region</th>
+              <th scope="col">3D structure</th>
+              <th scope="col">ClinVar</th>
+              <th scope="col">Reference</th>
+              <th scope="col">Note</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel about">
+      <h2>About this resource</h2>
+      <p>
+        This site accompanies a review of CDKL5 deficiency disorder. Variant names follow HGVS protein
+        nomenclature on isoform <span data-cfg="protein.isoform"></span> (<span data-cfg="protein.transcript"></span>).
+        Predicted effects are worked out from the variant name only and do not account for
+        nonsense-mediated decay or alternative splicing.
+      </p>
+      <p>
+        The 3D view uses the crystal structure <span data-cfg="structure.pdb"></span>
+        (residues <span data-cfg="structure.modelled"></span>), displayed with
+        <a href="https://github.com/molstar/pdbe-molstar" target="_blank" rel="noopener">PDBe Mol*</a>
+        (Sehnal et al., Nucleic Acids Research 2021). The C-terminal region is intrinsically disordered and has
+        no experimental structure, so it is drawn as a schematic.
+      </p>
+      <p class="disclaimer">
+        For research and education only. Not intended for clinical diagnosis or variant interpretation.
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>Children's Medical Research Institute</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.2/build/pdbe-molstar-plugin.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/lib.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
