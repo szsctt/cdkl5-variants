@@ -576,10 +576,11 @@
     ov.innerHTML = '';
     var tm = act && LIB.isTruncating(act) ? act : null;
     if (tm) {
-      var x0 = x(tm.start) + 7;
-      var x1 = x(CFG.protein.length) + 22;
-      // Covers the protein and the functional sites that are lost with it.
-      svg('rect', { x: x0, y: KTOP - 10, width: x1 - x0, height: FY + 12 - (KTOP - 10), class: 'lost' }, ov);
+      var x0 = x(tm.start);
+      var x1 = x(CFG.protein.length);
+      // A bracket under the protein marks the lost span without covering anything.
+      var by = LOST_Y - 10;
+      svg('path', { d: 'M' + x0 + ',' + (by - 4) + ' V' + by + ' H' + x1 + ' V' + (by - 4), class: 'lost' }, ov);
       var right = x0 > W * 0.6;
       svg('text', {
         x: right ? x1 - 4 : x0 + 4, y: LOST_Y,

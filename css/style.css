@@ -116,7 +116,7 @@ a { color: var(--accent); }
 .cartoon .mut.is-active .mut-label { font-weight: 700; }
 .cartoon .mut.is-active .leader { stroke-width: 2; }
 .cartoon .mut:focus-visible .mut-label { text-decoration: underline; }
-.cartoon .lost { fill: #FFFFFF; opacity: 0.75; }
+.cartoon .lost { fill: none; stroke: #8A8F96; stroke-width: 1.2; }
 .cartoon .lost-label { font-size: 11px; font-style: italic; fill: #666; }
 .cartoon .lost-label.end { text-anchor: end; }
 
