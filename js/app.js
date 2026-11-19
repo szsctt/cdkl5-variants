@@ -576,16 +576,36 @@
     ov.innerHTML = '';
     var tm = act && LIB.isTruncating(act) ? act : null;
     if (tm) {
+      var len = CFG.protein.length;
+      var stop = LIB.stopCodon(tm);
       var x0 = x(tm.start);
-      var x1 = x(CFG.protein.length);
-      // A bracket under the protein marks the lost span without covering anything.
+      var x1 = x(len);
       var by = LOST_Y - 10;
-      svg('path', { d: 'M' + x0 + ',' + (by - 4) + ' V' + by + ' H' + x1 + ' V' + (by - 4), class: 'lost' }, ov);
-      var right = x0 > W * 0.6;
+      // Bracket under the protein: dashed over residues made from the shifted
+      // frame, solid over residues that are truncated, tick at the stop codon.
+      if (stop && stop > tm.start) {
+        var xs = x(stop);
+        svg('path', { d: 'M' + x0 + ',' + (by - 4) + ' V' + by + ' H' + xs, class: 'lost altered' }, ov);
+        svg('path', { d: 'M' + xs + ',' + (by - 6) + ' V' + by + ' H' + x1 + ' V' + (by - 4), class: 'lost' }, ov);
+      } else {
+        svg('path', { d: 'M' + x0 + ',' + (by - 4) + ' V' + by + ' H' + x1 + ' V' + (by - 4), class: 'lost' }, ov);
+      }
+      var text;
+      if (tm.type === 'nonsense') {
+        text = 'Stop at codon ' + stop + '; residues ' + stop + '–' + len + ' truncated';
+      } else if (stop && stop > tm.start) {
+        text = 'Altered ' + tm.start + '–' + (stop - 1) + ', stop at codon ' + stop +
+          '; native residues ' + tm.start + '–' + len + ' lost';
+      } else if (stop) {
+        text = 'Stop at codon ' + stop + '; native residues ' + tm.start + '–' + len + ' lost';
+      } else {
+        text = 'Frameshift at codon ' + tm.start + ' (stop not given); native residues ' + tm.start + '–' + len + ' lost';
+      }
+      var right = x0 > W * 0.55;
       svg('text', {
-        x: right ? x1 - 4 : x0 + 4, y: LOST_Y,
+        x: right ? x1 : x0 + 4, y: LOST_Y,
         class: 'lost-label' + (right ? ' end' : ''),
-        text: 'Native residues ' + tm.start + '–' + CFG.protein.length + ' lost'
+        text: text
       }, ov);
     }
   }

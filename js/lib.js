@@ -54,6 +54,13 @@
     return mut.type === 'nonsense' || mut.type === 'frameshift';
   }
 
+  /** Codon where translation stops, or null if unknown or not truncating. */
+  function stopCodon(mut) {
+    if (mut.type === 'nonsense') return mut.start;
+    if (mut.type === 'frameshift' && mut.ter) return mut.start + mut.ter - 1;
+    return null;
+  }
+
   function regionOf(pos, cfg) {
     for (var i = 0; i < cfg.regions.length; i++) {
       var r = cfg.regions[i];
@@ -89,7 +96,7 @@
         return 'Single amino acid substitution at residue ' + mut.start + '.';
       case 'nonsense':
         return 'Premature stop at codon ' + mut.start + '. Residues ' + mut.start + '–' + len +
-          ' (' + lostPct + '% of the protein) are not made.';
+          ' (' + lostPct + '% of the protein) are truncated.';
       case 'frameshift': {
         var txt = 'Reading frame shifts at codon ' + mut.start + '. ';
         if (mut.ter === 1) {
@@ -151,6 +158,7 @@
     parseHgvs: parseHgvs,
     checkRef: checkRef,
     isTruncating: isTruncating,
+    stopCodon: stopCodon,
     regionOf: regionOf,
     structureStatus: structureStatus,
     describe: describe,
