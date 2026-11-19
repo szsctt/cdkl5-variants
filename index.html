@@ -48,6 +48,7 @@
       <div class="cartoon-scroll">
         <div id="cartoon" class="cartoon"></div>
       </div>
+      <p class="hint">Functional sites are shown on the track under the protein. Hover over or tab to a site, or the kinase domain, to see its residues and sources (listed in full at the bottom of the page).</p>
     </section>
 
     <section class="panel">
@@ -65,8 +66,28 @@
               <th scope="col">Region</th>
               <th scope="col">3D structure</th>
               <th scope="col">ClinVar</th>
-              <th scope="col">Reference</th>
+              <th scope="col">References</th>
               <th scope="col">Note</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <section class="panel" id="feature-sources" aria-labelledby="feature-sources-title">
+      <h2 id="feature-sources-title">Sources for functional sites</h2>
+      <p id="feature-sources-note" class="muted small"></p>
+      <div class="table-scroll">
+        <table class="static">
+          <thead>
+            <tr>
+              <th scope="col">Feature</th>
+              <th scope="col">Residues</th>
+              <th scope="col">Sequence</th>
+              <th scope="col">Evidence</th>
+              <th scope="col">Sources</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -77,17 +98,16 @@
     <section class="panel about">
       <h2>About this resource</h2>
       <p>
-        This site accompanies a review of CDKL5 deficiency disorder. Variant names follow HGVS protein
-        nomenclature on isoform <span data-cfg="protein.isoform"></span> (<span data-cfg="protein.transcript"></span>).
-        Predicted effects are worked out from the variant name only and do not account for
-        nonsense-mediated decay or alternative splicing.
+        Variant names follow HGVS protein nomenclature on isoform <span data-cfg="protein.isoform"></span>
+        (<span data-cfg="protein.transcript"></span>). Predicted effects are worked out from the variant name only
+        and do not account for nonsense-mediated decay or alternative splicing.
       </p>
       <p>
         The 3D view uses the crystal structure <span data-cfg="structure.pdb"></span>
         (residues <span data-cfg="structure.modelled"></span>), displayed with
         <a href="https://github.com/molstar/pdbe-molstar" target="_blank" rel="noopener">PDBe Mol*</a>
-        (Sehnal et al., Nucleic Acids Research 2021). The C-terminal region is intrinsically disordered and has
-        no experimental structure, so it is drawn as a schematic.
+        (Sehnal et al., Nucleic Acids Research 2021). The C-terminal region is disordered and has no
+        experimental structure.
       </p>
       <p class="disclaimer">
         For research and education only. Not intended for clinical diagnosis or variant interpretation.

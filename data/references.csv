@@ -1,0 +1,21 @@
+# References cited in mutations.csv. One row per paper.
+# doi: the DOI (10.xxxx/...), used as the key in the reference column of mutations.csv.
+# citation: short author-date text shown on the site as the link text.
+doi,citation
+10.1038/ejhg.2011.131,"Amenduni, De Filippis et al. 2011"
+10.1038/ncb2566,"Ricciardi, Ungaro et al. 2012"
+10.1038/ejhg.2014.81,"Livide, Patriarchi et al. 2015"
+10.15252/embj.201899763,"Baltussen, Negraes et al. 2018"
+10.1093/hmg/ddz208,"Jagtap, Thanos et al. 2019"
+10.1093/brain/awaa028,"Gao, Irvine et al. 2020"
+10.1126/scitranslmed.aax4846,"La Montanara, Hervera et al. 2020"
+10.1016/j.nbd.2021.105370,"Van Bergen, Massey et al. 2021"
+10.1038/s41380-021-01104-2,"Negraes, Trujillo et al. 2021"
+10.1016/j.scr.2021.102276,"Chen, Chen et al. 2021"
+10.1016/j.nbd.2022.105882,"Wu, Yao et al. 2022"
+10.1007/s00018-024-05389-8,"Massey, Ang et al. 2024"
+10.1016/j.scr.2024.103607,"Weng, Liu et al. 2024"
+10.1016/j.nbd.2025.107093,"Glass, Whye et al. 2025"
+10.3389/fbioe.2025.1744903,"Medici, Bove et al. 2026"
+10.1038/s41598-026-48097-y,"Chai, Zhu et al. 2026"
+10.1002/advs.202515887,"Afshar-Saber, Gasparoli et al. 2026"

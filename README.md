@@ -18,7 +18,8 @@ The site is plain HTML, CSS and JavaScript with no build step, so it can be host
 | File | Purpose |
 | --- | --- |
 | `data/mutations.csv` | The variant list. This is the only file most edits need. |
-| `js/config.js` | Isoform, sequence, domain boundaries, structure and colours. |
+| `data/references.csv` | DOI and short author-date citation for each paper cited in the variant list. |
+| `js/config.js` | Isoform, sequence, domain boundaries, functional sites and their sources, structure and colours. |
 | `js/lib.js` | HGVS parsing and annotation (no page code). |
 | `js/app.js` | The three linked views. |
 | `css/style.css` | Styles. |
@@ -29,17 +30,28 @@ Open `data/mutations.csv` in a text editor or Excel (save as CSV). Columns:
 
 | Column | Required | Notes |
 | --- | --- | --- |
-| `hgvs` | yes | Protein HGVS name on CDKL5_1 (NM_001323289.2), e.g. `p.Arg59Ter`, `p.Leu220Pro`, `p.Leu61CysfsTer15`, `p.Asp135_Phe154del`. |
+| `hgvs` | yes | Protein HGVS name on CDKL5_1 (NM_001323289.2), e.g. `p.Arg59Ter`, `p.Leu220Pro`, `p.Leu61CysfsTer15`, `p.Asp135_Phe154del`. For a chromosomal microdeletion, a short name such as `Xp22.13 deletion` with `type` set to `microdeletion`. |
 | `clinvar` | no | ClinVar variation ID. If blank, the page links to a ClinVar search instead. |
-| `reference` | no | A PMID (digits only), a DOI (`10.xxxx/...`) or free text. PMIDs and DOIs become links. |
+| `reference` | no | One or more DOIs (`10.xxxx/...`) or PMIDs (digits only), separated by semicolons. Each becomes a link. DOIs listed in `data/references.csv` are shown with their author-date citation. |
 | `note` | no | Free text shown in the table. |
-| `type` | no | Override the type the page works out from the name. Normally leave blank. |
+| `type` | no | Override the type the page works out from the name. Normally leave blank. Use `microdeletion` for chromosomal deletions, which are listed in the table but not drawn on the structure or schematic. |
+
+To add a new paper, add a row to `data/references.csv` with its DOI and a short citation (for example
+`"Gao, Irvine et al. 2020"`), then put the DOI in the `reference` column of each variant it supports.
 
 Type, position, region and predicted effect are all worked out from the HGVS name. If the
 reference amino acid in a name does not match the CDKL5_1 sequence, the table shows a warning
 symbol next to it. Rows that cannot be parsed are skipped and reported in the browser console.
 
 Remember to update `lastUpdated` in `js/config.js` when the list changes.
+
+## Functional sites
+
+The functional sites track (ATP-binding site, active site, TEY motif, NLSs, putative NES) and the
+"Sources for functional sites" table at the bottom of the page both come from `features` and
+`featureSources` in `js/config.js`. Each feature lists its residue ranges on CDKL5_1, a short
+evidence note and the keys of its sources. A variant that falls inside a site shows it in the
+details panel.
 
 ## Previewing locally
 

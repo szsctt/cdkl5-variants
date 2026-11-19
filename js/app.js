@@ -50,32 +50,61 @@
 
   // ------------------------------------------------------------------- data
 
+  /** Whether a variant has a residue position (and so can be drawn on the protein). */
+  function onProtein(m) { return TYPE[m.type].onProtein !== false; }
+
   function buildMutations(rows) {
     var out = [];
     rows.forEach(function (r, i) {
-      var p = LIB.parseHgvs(r.hgvs);
-      if (!p) {
-        console.warn('Could not parse HGVS name, row skipped:', r.hgvs);
-        return;
-      }
-      if (r.type && TYPE[r.type.toLowerCase().replace(/[\s-]+/g, '_')]) {
-        p.type = r.type.toLowerCase().replace(/[\s-]+/g, '_');
+      var type = (r.type || '').toLowerCase().replace(/[\s-]+/g, '_');
+      if (type && !TYPE[type]) type = '';
+      var p;
+      if (type && TYPE[type].onProtein === false) {
+        // Chromosomal change with no residue position, e.g. "Xp22.13 deletion".
+        p = { type: type, start: null, end: null, refs: [] };
+      } else {
+        p = LIB.parseHgvs(r.hgvs);
+        if (!p) {
+          console.warn('Could not parse HGVS name, row skipped:', r.hgvs);
+          return;
+        }
+        if (type) p.type = type;
       }
       p.id = 'm' + i;
       p.hgvs = r.hgvs;
       p.label = r.hgvs.replace(/^p\./, '');
       p.clinvar = r.clinvar || '';
-      p.reference = r.reference || '';
+      p.references = (r.reference || '').split(';').map(function (s) { return s.trim(); }).filter(Boolean);
       p.note = r.note || '';
-      p.region = LIB.regionOf(p.start, CFG);
-      p.structure = LIB.structureStatus(p.start, p.end, CFG.structure);
-      p.effect = LIB.describe(p, CFG);
-      p.refOk = LIB.checkRef(p, CFG.protein.sequence);
-      if (!p.refOk) console.warn('Reference amino acid does not match ' + CFG.protein.isoform + ':', r.hgvs);
+      if (onProtein(p)) {
+        p.region = LIB.regionOf(p.start, CFG);
+        p.structure = LIB.structureStatus(p.start, p.end, CFG.structure);
+        p.effect = LIB.describe(p, CFG);
+        p.refOk = LIB.checkRef(p, CFG.protein.sequence);
+        if (!p.refOk) console.warn('Reference amino acid does not match ' + CFG.protein.isoform + ':', r.hgvs);
+      } else {
+        p.region = 'Chromosomal';
+        p.structure = { code: 'outside', text: 'Not a protein-level change' };
+        p.effect = 'Chromosomal microdeletion affecting the ' + CFG.protein.gene + ' locus. It has no single residue position, so it is not drawn on the structure or the schematic.';
+        p.refOk = true;
+      }
       out.push(p);
     });
-    out.sort(function (a, b) { return a.start - b.start || a.end - b.end; });
+    // Variants without a residue position go last.
+    out.sort(function (a, b) {
+      if (a.start === null || b.start === null) return (a.start === null) - (b.start === null);
+      return a.start - b.start || a.end - b.end;
+    });
     return out;
+  }
+
+  /** Map of DOI (lower case) to short citation text, from references.csv. */
+  var CITATIONS = {};
+
+  function loadReferences(rows) {
+    rows.forEach(function (r) {
+      if (r.doi && r.citation) CITATIONS[r.doi.toLowerCase()] = r.citation;
+    });
   }
 
   // -------------------------------------------------------------- 3D viewer
@@ -131,7 +160,7 @@
     // Prefer point mutations over the deletion range when both cover a residue.
     var hit = null;
     state.muts.forEach(function (m) {
-      if (!isVisible(m) || resNum < m.start || resNum > m.end) return;
+      if (!isVisible(m) || !onProtein(m) || resNum < m.start || resNum > m.end) return;
       if (!hit || (m.end - m.start) < (hit.end - hit.start)) hit = m;
     });
     return hit;
@@ -205,67 +234,45 @@
 
   // ---------------------------------------------------------------- cartoon
 
-  var W = 1200, H = 390, ML = 50, MR = 60;
-  var TY = 185, KTOP = 158, KBOT = 212;
-  var ROWS = [
-    { side: 'above', y: 118 }, { side: 'below', y: 262 },
-    { side: 'above', y: 80 }, { side: 'below', y: 300 },
-    { side: 'above', y: 42 }, { side: 'below', y: 338 }
-  ];
+  // Layout, top to bottom: angled variant labels, leader elbows, protein,
+  // region names, functional sites track, shared residue axis.
+  var W = 1200, H = 352, ML = 50, MR = 60;
+  var LABEL_Y = 112;   // where each leader ends and its label starts
+  var ELBOW_Y = 140;   // top of the vertical part of each leader
+  var TY = 180, KTOP = 167, KBOT = 193;
+  var REGION_Y = 216;  // region names under the protein
+  var LOST_Y = 234;    // "residues lost" note for truncating variants
+  var FY = 266;        // functional sites track
+  var AXIS_Y = 322;    // shared residue axis
+  var SLOT = 19;       // minimum spacing between label slots
   var cartoon = {};
 
   function x(pos) { return ML + ((pos - 1) / (CFG.protein.length - 1)) * (W - ML - MR); }
 
   var kinase = CFG.regions[0];
   var disordered = CFG.regions[1];
-  var WAVE_PERIOD = 30, WAVE_AMP = 7;
-  function waveY(px) { return TY + WAVE_AMP * Math.sin(((px - x(disordered.start)) / WAVE_PERIOD) * 2 * Math.PI); }
 
-  function anchorFor(m, side) {
+  function anchorFor(m) {
     var mid = (m.start + m.end) / 2;
     var px = x(mid);
-    if (mid >= kinase.start && mid <= kinase.end) return { x: px, y: side === 'above' ? KTOP : KBOT };
-    if (mid >= disordered.start) return { x: px, y: waveY(px) };
+    if (mid >= kinase.start && mid <= kinase.end) return { x: px, y: KTOP };
     return { x: px, y: TY };
   }
 
   function textWidth(s) { return s.length * 6.7 + 6; }
 
-  /** Assign each label to a row and spread labels within rows so they do not overlap. */
+  /** Give each variant a label slot above the protein, in sequence order, at least SLOT apart. */
   function layoutLabels(muts) {
-    var GAP = 10;
-    var rows = ROWS.map(function () { return []; });
-    muts.forEach(function (m) {
-      var item = { m: m, w: textWidth(m.label), cx: x((m.start + m.end) / 2) };
-      var chosen = -1;
-      for (var r = 0; r < rows.length && chosen < 0; r++) {
-        var clash = rows[r].some(function (o) { return Math.abs(o.cx - item.cx) < (o.w + item.w) / 2 + GAP; });
-        if (!clash) chosen = r;
-      }
-      if (chosen < 0) {
-        chosen = 0;
-        rows.forEach(function (rw, i) { if (rw.length < rows[chosen].length) chosen = i; });
-      }
-      rows[chosen].push(item);
-    });
-
-    var placed = [];
-    rows.forEach(function (items, r) {
-      items.sort(function (a, b) { return a.cx - b.cx; });
-      var pos = items.map(function (it) { return it.cx; });
-      for (var i = 1; i < items.length; i++) {
-        pos[i] = Math.max(pos[i], pos[i - 1] + (items[i - 1].w + items[i].w) / 2 + GAP);
-      }
-      for (var j = items.length - 1; j >= 0; j--) {
-        var limit = j === items.length - 1 ? W - 4 - items[j].w / 2 : pos[j + 1] - (items[j].w + items[j + 1].w) / 2 - GAP;
-        pos[j] = Math.min(pos[j], limit);
-        pos[j] = Math.max(pos[j], 4 + items[j].w / 2);
-      }
-      items.forEach(function (it, k) {
-        placed.push({ m: it.m, row: ROWS[r], lx: pos[k] });
-      });
-    });
-    return placed;
+    var items = muts.map(function (m) { return { m: m, cx: x((m.start + m.end) / 2) }; });
+    items.sort(function (a, b) { return a.cx - b.cx || a.m.start - b.m.start; });
+    var pos = items.map(function (it) { return it.cx; });
+    var right = W - 70; // leave room for the last angled label
+    for (var i = 1; i < pos.length; i++) pos[i] = Math.max(pos[i], pos[i - 1] + SLOT);
+    for (var j = pos.length - 1; j >= 0; j--) {
+      pos[j] = Math.min(pos[j], j === pos.length - 1 ? right : pos[j + 1] - SLOT);
+    }
+    for (var k = 0; k < pos.length; k++) pos[k] = Math.max(pos[k], k === 0 ? 8 : pos[k - 1] + SLOT);
+    return items.map(function (it, n) { return { m: it.m, lx: pos[n] }; });
   }
 
   function drawCartoon() {
@@ -289,65 +296,232 @@
     svg('line', { x1: x(1), y1: TY, x2: x(kinase.start), y2: TY, class: 'linker' }, track);
     svg('line', { x1: x(kinase.end), y1: TY, x2: x(disordered.start), y2: TY, class: 'linker' }, track);
 
-    // Disordered region as a wavy tube
-    var pts = [];
-    for (var px = x(disordered.start); px <= x(disordered.end) + 0.01; px += 2) {
-      pts.push(px.toFixed(1) + ',' + waveY(px).toFixed(1));
-    }
-    var d = 'M' + pts.join(' L');
+    // Disordered region as a straight tube
+    var d = 'M' + x(disordered.start) + ',' + TY + ' H' + x(disordered.end);
     svg('path', { d: d, class: 'idr-outer' }, track);
     svg('path', { d: d, class: 'idr-inner' }, track);
 
-    // Kinase domain block
-    svg('rect', {
+    // Kinase domain block (hovering it shows the domain's source)
+    var kblock = svg('rect', {
       x: x(kinase.start), y: KTOP, width: x(kinase.end) - x(kinase.start), height: KBOT - KTOP,
-      rx: 22, class: 'kinase'
+      rx: (KBOT - KTOP) / 2, class: 'kinase'
     }, track);
-    svg('text', { x: (x(kinase.start) + x(kinase.end)) / 2, y: TY - 4, class: 'region-label', text: kinase.name }, track);
-    svg('text', { x: (x(kinase.start) + x(kinase.end)) / 2, y: TY + 13, class: 'region-sub', text: 'aa ' + kinase.start + '–' + kinase.end }, track);
+    var kfeat = featureByKey('kinase');
+    if (kfeat) bindFeature(kblock, kfeat, false);
 
     svg('text', { x: x(1) - 12, y: TY + 5, class: 'terminus', text: 'N' }, track);
     svg('text', { x: x(len) + 14, y: TY + 5, class: 'terminus', text: 'C' }, track);
 
-    // Ruler
+    // Region names under the protein
+    svg('text', {
+      x: (x(kinase.start) + x(kinase.end)) / 2, y: REGION_Y, class: 'region-label',
+      text: kinase.name + ' (aa ' + kinase.start + '–' + kinase.end + ')'
+    }, track);
+    svg('text', {
+      x: (x(disordered.start) + x(disordered.end)) / 2, y: REGION_Y, class: 'region-label',
+      text: disordered.name + ' (aa ' + disordered.start + '–' + disordered.end + ')'
+    }, track);
+
+    // Residue axis at the bottom, shared by the protein and the functional sites
     var ruler = svg('g', { class: 'ruler' }, track);
+    svg('line', { x1: x(1), y1: AXIS_Y, x2: x(len), y2: AXIS_Y, class: 'axis' }, ruler);
     var ticks = [1];
     for (var t = 100; t < len; t += 100) ticks.push(t);
     ticks.push(len);
     ticks.forEach(function (tk) {
       var tx = x(tk);
-      svg('line', { x1: tx, y1: 226, x2: tx, y2: 231 }, ruler);
-      if (tk === len || len - tk > 30) svg('text', { x: tx, y: 243, text: String(tk) }, ruler);
+      svg('line', { x1: tx, y1: AXIS_Y, x2: tx, y2: AXIS_Y + 5 }, ruler);
+      if (tk === len || len - tk > 30) svg('text', { x: tx, y: AXIS_Y + 18, text: String(tk) }, ruler);
     });
 
-    svg('text', {
-      x: (x(disordered.start) + x(disordered.end)) / 2, y: 380, class: 'region-sub',
-      text: disordered.name + ' (aa ' + disordered.start + '–' + disordered.end + ')'
-    }, track);
-
+    cartoon.band = svg('g', { class: 'feature-band' }, s);
     cartoon.overlay = svg('g', { class: 'lost-overlay' }, s);
     cartoon.markers = svg('g', { class: 'markers' }, s);
     cartoon.labels = svg('g', { class: 'labels' }, s);
+    drawFeatureTrack(s);
     cartoon.svg = s;
     drawMarkers();
+  }
+
+  // ------------------------------------------------------- functional sites
+
+  function featureByKey(key) {
+    return (CFG.features || []).filter(function (f) { return f.key === key; })[0] || null;
+  }
+
+  function segText(f) {
+    return f.segments.map(function (sg) { return sg[0] === sg[1] ? String(sg[0]) : sg[0] + '–' + sg[1]; }).join(', ');
+  }
+
+  function seqText(f) {
+    var seq = CFG.protein.sequence;
+    return f.segments.map(function (sg) {
+      return sg[0] === sg[1] ? seq.charAt(sg[0] - 1) + sg[0] : seq.slice(sg[0] - 1, sg[1]);
+    }).join(', ');
+  }
+
+  /** Where a feature can be seen in the crystal structure. */
+  function featureStructureText(f) {
+    var codes = f.segments.map(function (sg) { return LIB.structureStatus(sg[0], sg[1], CFG.structure); });
+    if (codes.every(function (c) { return c.code === 'shown'; })) return codes[0].text;
+    if (codes.every(function (c) { return c.code === 'outside'; })) return 'Not in structure';
+    if (codes.every(function (c) { return c.code === 'unresolved'; })) return codes[0].text;
+    return 'Partly resolved in ' + CFG.structure.pdb.toUpperCase();
+  }
+
+  /** Features (other than the kinase domain itself) overlapping a residue range. */
+  function featuresIn(start, end) {
+    return (CFG.features || []).filter(function (f) {
+      return f.key !== 'kinase' && f.segments.some(function (sg) { return sg[0] <= end && sg[1] >= start; });
+    });
+  }
+
+  var tip = null;
+
+  function showTip(f, evt, anchor) {
+    if (!tip) tip = el('div', { class: 'tip', role: 'tooltip' }, document.body);
+    tip.innerHTML = '';
+    el('div', { class: 'tip-title', text: f.label }, tip);
+    el('div', { class: 'tip-meta', text: 'Residues ' + segText(f) + ' · ' + seqText(f) }, tip);
+    el('div', { class: 'tip-meta', text: '3D structure: ' + featureStructureText(f) }, tip);
+    el('p', { text: f.evidence }, tip);
+    el('div', { class: 'tip-head', text: f.sources.length > 1 ? 'Sources' : 'Source' }, tip);
+    var ul = el('ul', {}, tip);
+    f.sources.forEach(function (k) {
+      var src = CFG.featureSources[k];
+      if (src) el('li', { text: src.citation }, ul);
+    });
+    tip.style.display = 'block';
+    var px, py;
+    if (evt && evt.clientX !== undefined) { px = evt.clientX + 14; py = evt.clientY + 14; } else {
+      var r = anchor.getBoundingClientRect(); px = r.left; py = r.bottom + 8;
+    }
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    if (px + w > window.innerWidth - 8) px = Math.max(8, window.innerWidth - w - 8);
+    if (py + h > window.innerHeight - 8) py = Math.max(8, py - h - 28);
+    tip.style.left = px + 'px';
+    tip.style.top = py + 'px';
+  }
+
+  function hideTip() { if (tip) tip.style.display = 'none'; }
+
+  /** Shade the feature on the schematic and highlight it in 3D. */
+  function hoverFeature(f) {
+    cartoon.band.innerHTML = '';
+    if (f && f.key !== 'kinase') {
+      f.segments.forEach(function (sg) {
+        var x0 = x(sg[0]) - 2, x1 = x(sg[1]) + 2;
+        svg('rect', { x: x0, y: ELBOW_Y, width: Math.max(4, x1 - x0), height: FY + 10 - ELBOW_Y, class: 'band' }, cartoon.band);
+      });
+    }
+    if (!viewerReady) return;
+    enqueue(function () {
+      if (!f) {
+        var m = active();
+        if (m && m.structure.code !== 'outside' && m.structure.code !== 'unresolved') {
+          return viewer.visual.highlight({ data: [residueQuery(m.start, m.end)], color: hexToRgb('#FFB000') });
+        }
+        return viewer.visual.clearHighlight();
+      }
+      var st = CFG.structure;
+      var data = f.segments.filter(function (sg) {
+        return LIB.structureStatus(sg[0], sg[1], st).code !== 'outside';
+      }).map(function (sg) {
+        return residueQuery(Math.max(sg[0], st.modelled[0]), Math.min(sg[1], st.modelled[1]));
+      });
+      if (!data.length) return viewer.visual.clearHighlight();
+      return viewer.visual.highlight({ data: data, color: hexToRgb('#FFB000') });
+    });
+  }
+
+  function bindFeature(node, f, focusable) {
+    if (focusable) {
+      node.setAttribute('tabindex', 0);
+      node.setAttribute('role', 'img');
+      node.setAttribute('aria-label', f.label + ', residues ' + segText(f));
+    }
+    node.addEventListener('mouseenter', function (e) { showTip(f, e); hoverFeature(f); });
+    node.addEventListener('mousemove', function (e) { showTip(f, e); });
+    node.addEventListener('mouseleave', function () { hideTip(); hoverFeature(null); });
+    node.addEventListener('focus', function () { showTip(f, null, node); hoverFeature(f); });
+    node.addEventListener('blur', function () { hideTip(); hoverFeature(null); });
+  }
+
+  function drawFeatureTrack(s) {
+    var feats = (CFG.features || []).filter(function (f) { return f.track !== false; });
+    if (!feats.length) return;
+    var g = svg('g', { class: 'features' }, s);
+    svg('text', { x: x(1), y: FY - 16, class: 'track-title', text: 'Functional sites' }, g);
+    svg('line', { x1: x(1), y1: FY, x2: x(CFG.protein.length), y2: FY, class: 'track-base' }, g);
+
+    // Labels in up to two rows below the track, so neighbouring labels do not overlap.
+    var rowsEnd = [-Infinity, -Infinity];
+    feats.slice().sort(function (a, b) { return a.segments[0][0] - b.segments[0][0]; }).forEach(function (f) {
+      var grp = svg('g', { class: 'feature' }, g);
+      f.segments.forEach(function (sg) {
+        var x0 = x(sg[0]) - 2, x1 = x(sg[1]) + 2;
+        svg('rect', { x: x0, y: FY - 8, width: Math.max(5, x1 - x0), height: 16, rx: 2, class: 'feature-bar' }, grp);
+      });
+      var first = f.segments[0], last = f.segments[f.segments.length - 1];
+      var cx = (x(first[0]) + x(last[1])) / 2;
+      var w = textWidth(f.short);
+      var row = cx - w / 2 > rowsEnd[0] + 6 ? 0 : 1;
+      rowsEnd[row] = cx + w / 2;
+      svg('text', { x: cx, y: FY + 22 + row * 14, class: 'feature-label', text: f.short }, grp);
+      // Generous invisible hit area so small sites are easy to hover.
+      svg('rect', {
+        x: Math.min(x(first[0]), cx - w / 2) - 6, y: FY - 12,
+        width: Math.max(x(last[1]) - x(first[0]), w) + 12, height: 42 + row * 14, class: 'feature-hit'
+      }, grp);
+      bindFeature(grp, f, true);
+    });
+  }
+
+  function drawSources() {
+    var box = $('#feature-sources');
+    if (!box || !CFG.features) return;
+    var tbody = box.querySelector('tbody');
+    tbody.innerHTML = '';
+    CFG.features.forEach(function (f) {
+      var tr = el('tr', {}, tbody);
+      el('td', { text: f.label }, tr);
+      el('td', { class: 'num', text: segText(f) }, tr);
+      el('td', { class: 'hgvs', text: f.segments.length === 1 && f.segments[0][1] - f.segments[0][0] > 20 ? '' : seqText(f) }, tr);
+      el('td', { class: 'wrap-cell', text: f.evidence }, tr);
+      var td = el('td', { class: 'refs-cell' }, tr);
+      f.sources.forEach(function (k, i) {
+        var src = CFG.featureSources[k];
+        if (!src) return;
+        if (i) td.appendChild(document.createTextNode('; '));
+        el('a', { href: src.url, target: '_blank', rel: 'noopener', text: src.citation }, td);
+      });
+    });
+    var h = CFG.featureSources.hector2017;
+    var note = $('#feature-sources-note');
+    if (h && note) {
+      note.textContent = 'The choice of features follows Figure 2 of ';
+      el('a', { href: h.url, target: '_blank', rel: 'noopener', text: h.citation }, note);
+      note.appendChild(document.createTextNode(
+        ', which shows these sites without residue numbers. Positions are on ' + CFG.protein.isoform +
+        '. Rusconi et al. 2008 numbered residues on the 1030 aa isoform, which is identical to ' +
+        CFG.protein.isoform + ' up to residue 904.'));
+    }
   }
 
   function drawMarkers() {
     cartoon.markers.innerHTML = '';
     cartoon.labels.innerHTML = '';
     cartoon.nodes = {};
-    var placed = layoutLabels(state.muts.filter(isVisible));
+    var placed = layoutLabels(state.muts.filter(function (m) { return isVisible(m) && onProtein(m); }));
 
     // Range markers (deletions) first so point markers sit on top of them.
     placed.sort(function (p, q) { return (q.m.end - q.m.start) - (p.m.end - p.m.start); });
 
     placed.forEach(function (p) {
       var m = p.m;
-      var a = anchorFor(m, p.row.side);
-      var above = p.row.side === 'above';
+      var a = anchorFor(m);
 
-      // Leader and marker go in one layer, the label in a layer above it,
-      // so leaders from outer rows pass behind labels in inner rows.
+      // Leader and marker go in one layer, the label in a layer above it.
       var shape = svg('g', { class: 'mut', 'data-id': m.id }, cartoon.markers);
       var label = svg('g', {
         class: 'mut',
@@ -357,14 +531,18 @@
         'aria-label': m.hgvs + ', ' + TYPE[m.type].label
       }, cartoon.labels);
 
-      svg('line', { x1: a.x, y1: a.y, x2: p.lx, y2: p.row.y + (above ? 8 : -8), class: 'leader' }, shape);
+      // Vertical segment up from the marker, then an angled segment to the label slot.
+      svg('path', { d: 'M' + a.x + ',' + a.y + ' V' + ELBOW_Y + ' L' + p.lx + ',' + LABEL_Y, class: 'leader' }, shape);
       if (m.type === 'inframe_deletion' && m.end > m.start) {
         svg('rect', { x: x(m.start), y: a.y - 4, width: Math.max(4, x(m.end) - x(m.start)), height: 8, rx: 4, class: 'del-bar' }, shape);
       } else {
         svg('circle', { cx: a.x, cy: a.y, r: 11, class: 'hit' }, shape);
         svg('circle', { cx: a.x, cy: a.y, r: 6.5, class: 'dot' }, shape);
       }
-      svg('text', { x: p.lx, y: p.row.y, class: 'mut-label', text: m.label }, label);
+      svg('text', {
+        x: p.lx + 4, y: LABEL_Y - 4, class: 'mut-label', text: m.label,
+        transform: 'rotate(-45 ' + p.lx + ' ' + LABEL_Y + ')'
+      }, label);
 
       [shape, label].forEach(function (grp) {
         grp.style.setProperty('--c', TYPE[m.type].color);
@@ -400,10 +578,11 @@
     if (tm) {
       var x0 = x(tm.start) + 7;
       var x1 = x(CFG.protein.length) + 22;
-      svg('rect', { x: x0, y: KTOP - 14, width: x1 - x0, height: KBOT - KTOP + 28, class: 'lost' }, ov);
+      // Covers the protein and the functional sites that are lost with it.
+      svg('rect', { x: x0, y: KTOP - 10, width: x1 - x0, height: FY + 12 - (KTOP - 10), class: 'lost' }, ov);
       var right = x0 > W * 0.6;
       svg('text', {
-        x: right ? x1 - 4 : x0 + 4, y: KTOP - 20,
+        x: right ? x1 - 4 : x0 + 4, y: LOST_Y,
         class: 'lost-label' + (right ? ' end' : ''),
         text: 'Native residues ' + tm.start + '–' + CFG.protein.length + ' lost'
       }, ov);
@@ -413,17 +592,28 @@
   // ------------------------------------------------------------------ table
 
   function refLink(ref) {
-    if (!ref) return document.createTextNode('');
     if (/^\d{5,9}$/.test(ref)) {
       return el('a', { href: 'https://pubmed.ncbi.nlm.nih.gov/' + ref + '/', target: '_blank', rel: 'noopener', text: 'PMID ' + ref });
     }
     if (/^10\.\d{4,9}\//.test(ref)) {
-      return el('a', { href: 'https://doi.org/' + ref, target: '_blank', rel: 'noopener', text: ref });
+      var cite = CITATIONS[ref.toLowerCase()];
+      return el('a', { href: 'https://doi.org/' + ref, target: '_blank', rel: 'noopener', title: cite ? 'doi:' + ref : null, text: cite || ref });
     }
     return document.createTextNode(ref);
   }
 
+  /** All references for a variant, separated by semicolons. */
+  function refList(m) {
+    var span = el('span', { class: 'refs' });
+    m.references.forEach(function (ref, i) {
+      if (i) span.appendChild(document.createTextNode('; '));
+      span.appendChild(refLink(ref));
+    });
+    return span;
+  }
+
   function clinvarLink(m) {
+    if (!onProtein(m) && !m.clinvar) return document.createTextNode('');
     if (m.clinvar) {
       var id = m.clinvar.replace(/^VCV0*/i, '').replace(/\..*$/, '');
       return el('a', { href: 'https://www.ncbi.nlm.nih.gov/clinvar/variation/' + id + '/', target: '_blank', rel: 'noopener', text: m.clinvar });
@@ -450,11 +640,11 @@
       el('span', { class: 'hgvs', text: m.hgvs }, c0);
       if (!m.refOk) el('span', { class: 'warn', title: 'Reference amino acid does not match ' + CFG.protein.isoform, text: ' ⚠' }, c0);
       el('td', {}, tr).appendChild(chip(m.type));
-      el('td', { class: 'num', text: m.start === m.end ? String(m.start) : m.start + '–' + m.end }, tr);
+      el('td', { class: 'num', text: !onProtein(m) ? '' : m.start === m.end ? String(m.start) : m.start + '–' + m.end }, tr);
       el('td', { text: m.region }, tr);
       el('td', { text: m.structure.text }, tr);
       el('td', {}, tr).appendChild(clinvarLink(m));
-      el('td', {}, tr).appendChild(refLink(m.reference));
+      el('td', { class: 'refs-cell' }, tr).appendChild(refList(m));
       el('td', { text: m.note }, tr);
 
       tr.addEventListener('mouseenter', function () { setHover(m.id, 'table'); });
@@ -499,14 +689,27 @@
       var dd = el('dd', {}, dl);
       if (typeof v === 'string') dd.textContent = v; else dd.appendChild(v);
     }
-    row('Position', m.start === m.end ? 'Residue ' + m.start : 'Residues ' + m.start + '–' + m.end);
-    row('Region', m.region);
-    row('Predicted effect', m.effect);
-    row('3D structure', m.structure.code === 'outside'
-      ? 'Outside the crystal structure (' + CFG.structure.pdb.toUpperCase() + ' covers residues ' + CFG.structure.modelled[0] + '–' + CFG.structure.modelled[1] + ').'
-      : m.structure.text + '.');
-    row('ClinVar', clinvarLink(m));
-    if (m.reference) row('Reference', refLink(m.reference));
+    if (onProtein(m)) {
+      row('Position', m.start === m.end ? 'Residue ' + m.start : 'Residues ' + m.start + '–' + m.end);
+      row('Region', m.region);
+      var fs = featuresIn(m.start, m.end);
+      if (fs.length) {
+        row('Functional site', fs.map(function (f) { return f.label + ' (' + segText(f) + ')'; }).join('; '));
+      }
+      row('Predicted effect', m.effect);
+      row('3D structure', m.structure.code === 'outside'
+        ? 'Outside the crystal structure (' + CFG.structure.pdb.toUpperCase() + ' covers residues ' + CFG.structure.modelled[0] + '–' + CFG.structure.modelled[1] + ').'
+        : m.structure.text + '.');
+      row('ClinVar', clinvarLink(m));
+    } else {
+      row('Effect', m.effect);
+      if (m.clinvar) row('ClinVar', clinvarLink(m));
+    }
+    if (m.references.length) {
+      var ul = el('ul', { class: 'ref-list' });
+      m.references.forEach(function (ref) { el('li', {}, ul).appendChild(refLink(ref)); });
+      row(m.references.length > 1 ? 'References' : 'Reference', ul);
+    }
     if (m.note) row('Note', m.note);
     if (state.selected === m.id) {
       var b = el('button', { type: 'button', class: 'link-btn', text: 'Clear selection' }, box);
@@ -588,14 +791,22 @@
 
   function start() {
     fillStaticText();
+    drawSources();
     $('#pdb-link').href = 'https://www.ebi.ac.uk/pdbe/entry/pdb/' + CFG.structure.pdb;
-    fetch(CFG.dataUrl, { cache: 'no-cache' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+    function getText(url) {
+      return fetch(url, { cache: 'no-cache' }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + url);
         return r.text();
-      })
-      .then(function (text) {
-        state.muts = buildMutations(LIB.parseCSV(text));
+      });
+    }
+    // The page still works without references.csv; DOIs are then shown as-is.
+    var refs = CFG.referencesUrl
+      ? getText(CFG.referencesUrl).catch(function (err) { console.warn('References not loaded:', err); return ''; })
+      : Promise.resolve('');
+    Promise.all([getText(CFG.dataUrl), refs])
+      .then(function (texts) {
+        loadReferences(LIB.parseCSV(texts[1]));
+        state.muts = buildMutations(LIB.parseCSV(texts[0]));
         drawFilters();
         drawCartoon();
         drawTable();

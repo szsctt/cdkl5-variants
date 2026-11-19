@@ -91,22 +91,23 @@ a { color: var(--accent); }
 .cartoon { min-width: 860px; }
 .cartoon svg { display: block; width: 100%; height: auto; font-family: inherit; }
 .cartoon .linker { stroke: #8C8C8C; stroke-width: 4; stroke-linecap: round; }
-.cartoon .idr-outer { fill: none; stroke: #8C8C8C; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.cartoon .idr-outer { fill: none; stroke: #8C8C8C; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
 .cartoon .idr-inner { fill: none; stroke: #D6D6D6; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
 .cartoon .kinase { fill: url(#kgrad); stroke: #7A7A7A; stroke-width: 2; }
-.cartoon .region-label { font-size: 14px; fill: #333; text-anchor: middle; }
+.cartoon .region-label { font-size: 12.5px; fill: #444; text-anchor: middle; }
 .cartoon .region-sub { font-size: 12px; fill: #666; text-anchor: middle; }
 .cartoon .terminus { font-size: 14px; font-weight: 700; fill: #444; text-anchor: middle; }
 .cartoon .ruler line { stroke: #B5B5B5; }
-.cartoon .ruler text { font-size: 10px; fill: #9A9A9A; text-anchor: middle; }
+.cartoon .ruler .axis { stroke: #C8CDD3; }
+.cartoon .ruler text { font-size: 11px; fill: #8A8F96; text-anchor: middle; }
 
 .cartoon .mut { cursor: pointer; outline: none; transition: opacity 120ms; }
-.cartoon .mut .leader { stroke: var(--c); stroke-width: 1.2; }
+.cartoon .mut .leader { fill: none; stroke: var(--c); stroke-width: 1.2; stroke-linejoin: round; }
 .cartoon .mut .dot { fill: var(--c); stroke: #fff; stroke-width: 1.5; transition: r 120ms; }
 .cartoon .mut .hit { fill: transparent; }
 .cartoon .mut .del-bar { fill: var(--c); }
 .cartoon .mut .mut-label {
-  font-size: 12px; fill: var(--c); text-anchor: middle; dominant-baseline: central;
+  font-size: 12px; fill: var(--c); text-anchor: start; dominant-baseline: central;
   paint-order: stroke; stroke: #FFFFFF; stroke-width: 5px; stroke-linejoin: round;
 }
 .cartoon .mut.is-dim { opacity: 0.3; }
@@ -119,6 +120,30 @@ a { color: var(--accent); }
 .cartoon .lost-label { font-size: 11px; font-style: italic; fill: #666; }
 .cartoon .lost-label.end { text-anchor: end; }
 
+/* Functional sites track */
+.cartoon .track-title { font-size: 12px; font-weight: 600; fill: #555; }
+.cartoon .track-base { stroke: #D0D4DA; stroke-width: 2; }
+.cartoon .feature { cursor: help; outline: none; }
+.cartoon .feature-bar { fill: #4D5B6A; }
+.cartoon .feature-label { font-size: 11.5px; fill: #4D5B6A; text-anchor: middle; dominant-baseline: central; }
+.cartoon .feature-hit { fill: transparent; }
+.cartoon .feature:hover .feature-bar, .cartoon .feature:focus .feature-bar { fill: var(--hl); stroke: #8A6000; stroke-width: 1; }
+.cartoon .feature:hover .feature-label, .cartoon .feature:focus .feature-label { font-weight: 700; fill: #1E2329; }
+.cartoon .kinase { cursor: help; }
+.cartoon .band { fill: var(--hl); opacity: 0.16; pointer-events: none; }
+
+/* Tooltip */
+.tip {
+  display: none; position: fixed; z-index: 1000; max-width: 340px;
+  background: #1E2329; color: #F3F5F7; border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); pointer-events: none;
+}
+.tip-title { font-weight: 700; margin-bottom: 2px; }
+.tip-meta { color: #C4CAD2; font-size: 12.5px; }
+.tip p { margin: 6px 0; }
+.tip-head { color: #C4CAD2; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.tip ul { margin: 2px 0 0; padding-left: 1.1em; }
+
 /* Table */
 .table-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .table-head h2 { margin-bottom: 8px; }
@@ -128,7 +153,14 @@ th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--bor
 td:last-child { white-space: normal; min-width: 160px; }
 th { font-size: 12.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 td.num { font-variant-numeric: tabular-nums; }
+td.refs-cell { white-space: normal; min-width: 260px; max-width: 420px; }
+.ref-list { margin: 0; padding-left: 1.1em; }
+.ref-list li { margin: 0 0 2px; }
 tbody tr { cursor: pointer; }
+table.static tbody tr { cursor: default; }
+table.static tbody tr:hover { background: none; }
+td.wrap-cell { white-space: normal; min-width: 260px; }
+.small { font-size: 13px; }
 tbody tr:hover, tbody tr.is-active { background: var(--row-hl); }
 tbody tr.is-selected { box-shadow: inset 3px 0 0 var(--hl); }
 .hgvs { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13.5px; }

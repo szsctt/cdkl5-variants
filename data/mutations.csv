@@ -1,23 +1,27 @@
 # CDKL5 variants shown on the site. One row per variant.
 # hgvs: protein HGVS name on CDKL5_1 (NM_001323289.2), e.g. p.Arg59Ter. Type and position are worked out from it.
+#       For a chromosomal microdeletion, give a short name (e.g. Xp22.13 deletion) and set type to microdeletion.
 # clinvar: optional ClinVar variation ID (e.g. 143952). If blank, the site links to a ClinVar search.
-# reference: optional. A PMID (digits only), a DOI (10.xxxx/...) or free text.
+# reference: optional. One or more DOIs (10.xxxx/...) or PMIDs separated by semicolons. DOIs listed in
+#            references.csv are shown as author-date links. Free text is also allowed.
 # note: optional free text shown in the table.
-# type: optional override (missense, nonsense, frameshift, inframe_deletion). Leave blank normally.
+# type: optional override (missense, nonsense, frameshift, inframe_deletion, microdeletion). Leave blank normally.
 hgvs,clinvar,reference,note,type
-p.Glu55fsTer74,,,,
-p.Arg59Ter,,,,
-p.Leu61CysfsTer15,,,,
-p.Asp135Gly,,,,
-p.Asp135_Phe154del,,,,
-p.Leu142fsTer1,,,,
-p.Gly155fsTer197,,,,
-p.Leu220Pro,,,,
-p.Thr288Ile,,,,
-p.Gln347Ter,,,,
-p.Asp471fs,,,,
-p.Arg550Ter,,,,
-p.Arg558fsTer9,,,,
-p.Leu629Ter,,,,
-p.Ser855Ter,,,,
-p.Pro895Leu,,,,
+p.Glu55fsTer74,,10.1093/brain/awaa028; 10.1126/scitranslmed.aax4846,,
+p.Arg59Ter,,10.1038/ncb2566; 10.15252/embj.201899763; 10.1016/j.nbd.2021.105370; 10.1038/s41380-021-01104-2; 10.1016/j.nbd.2022.105882; 10.1007/s00018-024-05389-8; 10.3389/fbioe.2025.1744903,,
+p.Met63CysfsTer13,,10.1016/j.nbd.2021.105370,,
+p.Asp135Gly,,10.1016/j.scr.2021.102276,,
+p.Asp135_Phe154del,,10.15252/embj.201899763; 10.1038/s41380-021-01104-2,,
+p.Ile143Ter,,10.1016/j.nbd.2021.105370,,
+p.Gly155fsTer197,,10.1126/scitranslmed.aax4846,,
+p.Leu220Pro,,10.1038/ncb2566,,
+p.Thr288Ile,,10.1038/ejhg.2011.131; 10.1038/ejhg.2014.81,,
+p.Gln347Ter,,10.1038/ejhg.2011.131; 10.1126/scitranslmed.aax4846,,
+p.Asp471fs,,10.1093/hmg/ddz208; 10.1016/j.scr.2021.102276; 10.1016/j.nbd.2025.107093,,
+p.Arg550Ter,,10.1016/j.scr.2021.102276; 10.1038/s41380-021-01104-2; 10.1016/j.nbd.2025.107093; 10.1038/s41598-026-48097-y; 10.1002/advs.202515887,,
+p.Arg558fsTer9,,10.1016/j.scr.2021.102276,,
+p.Leu629Ter,,10.1016/j.scr.2021.102276; 10.1016/j.nbd.2025.107093,,
+p.Val718Met,,10.1016/j.scr.2021.102276; 10.1016/j.nbd.2025.107093,,
+p.Ser855Ter,,10.1126/scitranslmed.aax4846; 10.1038/s41380-021-01104-2,,
+p.Pro895Leu,,10.1016/j.scr.2024.103607,,
+Xp22.13 deletion,,10.1038/s41380-021-01104-2,,microdeletion
